@@ -10,6 +10,12 @@ document.addEventListener("submit",(event)=>{
 	const data = new FormData(form);
 	const serchCity = data.get("country");
     const serchDate = data.get("date");
+
+    const today = new Date()
+    if(today < new Date(serchDate)){
+        return alert("Seleccione maximo al dia de hoy")
+    }
+
     /* CONSTRUYENDO FECHA LIMITE PARA LA URL DE LA API */
     const year = new Date(serchDate).getFullYear();
     const month = new Date(serchDate).getMonth()+1;
