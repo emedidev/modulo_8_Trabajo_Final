@@ -111,7 +111,7 @@ form{
     text-align: center;
 }
 
-input{
+input, #country{
     border-radius: var(--border-radius);
     height: 40px;
     width: 200px;

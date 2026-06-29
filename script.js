@@ -1,16 +1,44 @@
-let to_day = new Date().toLocaleDateString();
+
+/* ESPACIO DONDE SE VISUALIZARA EN EL DOM LOS DATOS. */
 let form = document.querySelector("#form")
 
-
-
+/* FUNCION QUE DA INICIO AL EVENTO */
 document.addEventListener("submit",(event)=>{
 
+    /* SELECCIONANDO DATOS DEL FORMULARIO */
 	event.preventDefault()
-	const data = new FormData(form)
-	const serchCity = data.get("city")
-	const serchDate = data.get("year")
-	
-	let url = `https://meteostat.p.rapidapi.com/stations/daily?station=10637&start=${serchDate}&end=${serchDate}`;
+	const data = new FormData(form);
+	const serchCity = data.get("country");
+    const serchDate = data.get("date");
+    /* CONSTRUYENDO FECHA LIMITE PARA LA URL DE LA API */
+    const year = new Date(serchDate).getFullYear();
+    const month = new Date(serchDate).getMonth()+1;
+    const day = new Date(serchDate).getDate();
+
+    const startDateSrt = ()=>{
+        return String(year) + "-" + String(month).padStart(2, "0") + "-" + String(day-5).padStart(2, "0");
+    }
+    /* DEFINIENDO ARREGLO CON DATOS DE LAS ZONAS QUE SE BUSCARAN */
+    const estaciones = {
+        dom: {
+            pais: "República Dominicana",
+            ciudad: "Santo Domingo",
+            station: "78486"
+        },
+        usa: {
+            pais: "Estados Unidos",
+            ciudad: "New York",
+            station: "72503"
+        },
+
+        esp: {
+            pais: "España",
+            ciudad: "Madrid",
+            station: "08221"
+        }
+    };
+    /* DATOS DE LA API */
+	let url = `https://meteostat.p.rapidapi.com/stations/daily?station=${estaciones[serchCity].station}&start=${startDateSrt()}&end=${serchDate}`;
 	const options = {
 		method: 'GET',
 		headers: {
@@ -19,45 +47,59 @@ document.addEventListener("submit",(event)=>{
 			'Content-Type': 'application/json'
 		}
 
-};
+    };
 	
-	
-	dataApi(url, options, serchCity, serchDate)
+    /* FUNCION PARA MOSTRAR LOS DATOS EN EL DOM */
+	mostrarDatos(url, options, estaciones[serchCity], serchDate)
+
 })
 
+/* FUNCION QUE REGRESARA LOS DATOS DE LA API */
+async function mostrarDatos(url, opt, sCity, sDate) {
 
-async function dataApi(url, opt, sCity, sDate = to_day) {
-	try{
+	try{/* RESOLVIENDO API CON FETCH */
 		const response = await fetch(url, opt);
 		const result = await response.json();
 		const data = result.data;
-		console.log(data)
-		let country = sCity;
-		let date = sDate;
-		let temp = data[0].tavg;
-		let status = data[0].tsun;
-		let tempMin = data[0].tmin;
-		let tempMax = data[0].tmax;
-		let windt = data[0].wspd;
-		let rain = data[0].prcp;
-		
-		setTimeout(
 
+        /* VARIABLES CON LOS DATOS DE CADA REGISTRO QUE SE CARGARAN EN EL DOM */
+		let country = sCity.ciudad;
+		let date = data[6].data;
+		let temp = data[6].tavg;
+		let tsun = data[6].tsun;
+		let tmin = data[6].tmin;
+		let tmax = data[6].tmax;
+		let windt = data[6].wspd;
+		let rain = data[6].prcp;
+        let snow = data[6].snow;
+		/* VARIABLES QUE DEFINEN LOS ESTADOS METEOROLOGICOS DE CADA DIA */
+        let estado = obtenerEstado(rain,snow,tsun);
+        let dia5 = obtenerEstadosPass(data, 5)
+        let dia4 = obtenerEstadosPass(data, 4)
+        let dia3 = obtenerEstadosPass(data, 3)
+        let dia2 = obtenerEstadosPass(data, 2)
+        let dia1 = obtenerEstadosPass(data, 1)
+        let dia0 = obtenerEstadosPass(data, 0)
+        
+        /* EJECUCION CON TIEMPO DE ESPERA PARA CARGAR LOS DATOS AL DOM */
+		setTimeout(
+            /* ESTRUCTURA HTML QUE SE CARGARA EN EL DOM */
+            /* TARJETA PRINCIPAL Y TARJETAS SECUNDARIAS DE ULTIMOS DIAS */
 			document.querySelector(".container").innerHTML = `
 			<section class="weather-card">
 			<div class="header">
 			<div>
 			<h2>${country}</h2>
-			<p>Miércoles 26 Junio 2025</p>
+			<p>${sDate}</p>
 			</div>
                 </div>
                 <div class="containerMain">
 				<div class="temperature">
                         <h1>${temp}</h1>
-                        <span>${status}</span>
+                        <span>${estado.Estado}</span>
                     </div>
                     <div class="icon">
-                        ☀️
+                        ${estado.Icono}
                     </div>
                 </div>
 
@@ -80,47 +122,88 @@ async function dataApi(url, opt, sCity, sDate = to_day) {
                     </div>
                 </div>
             </section>
-
+            
             <!-- Últimos días -->
 
             <section class="forecast">
                 <div class="day-card">
-                    <h3>Lun</h3>
-                    <span>☀️</span>
-                    <p>30°</p>
+                    <h3>${dia5.NombreFecha}</h3>
+                    <span>${dia5.Estado.Icono}</span>
+                    <p>${dia5.Temp}º</p>
                 </div>
                 <div class="day-card">
-                    <h3>Mar</h3>
-                    <span>🌤️</span>
-                    <p>29°</p>
+                    <h3>${dia4.NombreFecha}</h3>
+                    <span>${dia4.Estado.Icono}</span>
+                    <p>${dia4.Temp}º</p>
                 </div>
                 <div class="day-card">
-                    <h3>Mié</h3>
-                    <span>🌧️</span>
-                    <p>27°</p>
+                    <h3>${dia3.NombreFecha}</h3>
+                    <span>${dia3.Estado.Icono}</span>
+                    <p>${dia3.Temp}º</p>
                 </div>
                 <div class="day-card">
-                    <h3>Jue</h3>
-                    <span>☀️</span>
-                    <p>31°</p>
+                    <h3>${dia2.NombreFecha}</h3>
+                    <span>${dia2.Estado.Icono}</span>
+                    <p>${dia2.Temp}º</p>
                 </div>
                 <div class="day-card">
-                    <h3>Vie</h3>
-                    <span>🌩️</span>
-                    <p>26°</p>
+                    <h3>${dia1.NombreFecha}</h3>
+                    <span>${dia1.Estado.Icono}</span>
+                    <p>${dia1.Temp}º</p>
                 </div>
                 <div class="day-card">
-                    <h3>Sáb</h3>
-                    <span>🌥️</span>
-                    <p>28°</p>
+                    <h3>${dia0.NombreFecha}</h3>
+                    <span>${dia0.Estado.Icono}</span>
+                    <p>${dia0.Temp}º</p>
                 </div>
             </section>
 		`
 	);{5}
-
-		
-
 	} catch(error){
-		console.error(error)
+		console.error("Error: ", error)
 	}
 }
+/* FUNCION PARA EVALUAR LOS ESTADOS Y ASIGNARLOS A CADA DIA */
+function obtenerEstado(prcp, snow, tsun) {
+    if (snow > 0) {
+        return {Estado: "Nevado", Icono: "❄️"};
+    }
+    if (prcp >= 10) {
+        return {Estado: "Lluvioso", Icono: "🌧️"};
+    }
+    if (prcp >= 2) {
+        return {Estado: "Chubascos", Icono: "🌦️"};
+    }
+    if (tsun >= 500) {
+        return {Estado: "Soleado", Icono: "☀️"};
+    }
+    if (tsun >= 180) {
+        return {Estado: "Parcialmente nublado", Icono: "⛅"};
+    }
+    return {Estado: "Nublado", Icono: "☁️"};
+}
+/* FUNCION PARA OBTENER EL ESTADO DE LOS DIAS ANTERIORES AL BUSCADO */
+function obtenerEstadosPass(datos, dia){
+            
+            const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+
+            let estadoDelDia = datos[dia];
+            let numeroDia = new Date(estadoDelDia.date.replace(" ","T")).getDay()
+            let nombreFecha = dias[numeroDia]
+            
+
+            let prcpInt = estadoDelDia.prcp;
+            let snowInt = estadoDelDia.snow;
+            let tsunInt = estadoDelDia.tsun;            
+            let nuevoEstado = obtenerEstado(prcpInt, snowInt, tsunInt);
+
+            let nuevaTemp = estadoDelDia.tavg;
+            
+            let resultado = {
+                Estado: nuevoEstado,
+                NombreFecha: nombreFecha,
+                Temp: nuevaTemp
+            }
+
+            return resultado
+        }
