@@ -1,6 +1,6 @@
 <div align="center">
 
-# **MODULO 8 ACTIVIDAD 2**
+# **MODULO 8 ACTIVIDAD 3**
 
 ## *Trabajo final JS*
 
